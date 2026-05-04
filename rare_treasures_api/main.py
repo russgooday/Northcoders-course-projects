@@ -35,3 +35,9 @@ async def handler_404(request: Request, __):
 
 # Serve static files
 app.mount('/public', StaticFiles(directory=f'{ROOT_PATH}/public', html=True), name='public')
+
+# Seed the database on startup
+@app.on_event('startup')
+def startup():
+    from rare_treasures_api.db.run_seed import run_seed
+    run_seed(environment='test')
