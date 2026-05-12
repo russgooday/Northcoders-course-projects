@@ -4,9 +4,9 @@ from pytest import mark, fixture
 from fastapi.testclient import TestClient
 from rare_treasures_api.main import app
 from rare_treasures_api.utils.fp_utils import get_values
-from rare_treasures_api.db.run_seed import run_seed
+from rare_treasures_api.startup import reset_db
 
-if not (row_counts:= run_seed('test')):
+if not (row_counts:= reset_db('dev')):
     raise RuntimeError('Database seeding failed')
 
 SHOPS_ROW_COUNT, TREASURES_ROW_COUNT = row_counts
@@ -15,9 +15,11 @@ SHOPS_ROW_COUNT, TREASURES_ROW_COUNT = row_counts
 @fixture(scope='class')
 def test_client():
     ''' returns a test client for the FastAPI app '''
-    yield TestClient(app)
+    with TestClient(app) as client:
+        yield client
+
     # clean up
-    run_seed('test')
+    reset_db('dev')
 
 @fixture(scope='function')
 def get_treasures(test_client):

@@ -1,4 +1,5 @@
 ''' This module is the entrypoint for the `Cat's Rare Treasures` FastAPI app. '''
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
@@ -6,9 +7,16 @@ from fastapi.templating import Jinja2Templates
 
 from .dependencies import ROOT_PATH
 from .controllers import treasures_router, admin_router
+from .startup import init_db
 templates = Jinja2Templates(directory=f'{ROOT_PATH}/views')
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    '''Initialize the database on startup'''
+    init_db()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 app.include_router(treasures_router)
 app.include_router(admin_router)
 
@@ -34,10 +42,8 @@ async def handler_404(request: Request, __):
     )
 
 # Serve static files
-app.mount('/public', StaticFiles(directory=f'{ROOT_PATH}/public', html=True), name='public')
-
-# Seed the database on startup
-@app.on_event('startup')
-def startup():
-    from rare_treasures_api.db.run_seed import run_seed
-    run_seed(environment='test')
+app.mount(
+    '/public',
+    StaticFiles(directory=f'{ROOT_PATH}/public', html=True),
+    name='public'
+)

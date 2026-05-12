@@ -1,4 +1,6 @@
 ''' models and functions for treasures table '''
+# TODO: Subsititute numerous connection creations with a single session to improve performance,
+# especially for fetching colours and shop names which are used frequently in the app
 
 from typing import Literal, Optional, Any
 import pandas as pd
@@ -129,7 +131,10 @@ def fetch_treasures(params: TreasureQueryParams) -> dict[str, list[dict]]:
 
         column_names = stmt.selected_columns.keys()
         rows = conn.execute(stmt).all()
-        pd_treasures = (pd.DataFrame(rows, columns=column_names).convert_dtypes(dtype_backend='pyarrow'))
+        pd_treasures = (
+            pd.DataFrame(rows, columns=column_names)
+                .convert_dtypes(dtype_backend='pyarrow')
+        )
 
         return {'treasures': pd_treasures.to_dict('records')}
 
@@ -170,5 +175,6 @@ def insert_treasure(params: TreasureFields) -> dict[str, Any]:
         )
 
         result = conn.execute(stmt)
+        data = dict(result.mappings().one())
     # return the inserted row as a dictionary
-    return dict(result.mappings().one())
+    return data
